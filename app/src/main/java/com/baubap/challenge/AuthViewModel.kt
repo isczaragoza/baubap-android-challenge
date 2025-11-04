@@ -1,8 +1,7 @@
 package com.baubap.challenge
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
+import kotlinx.serialization.json.Json
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
 
@@ -10,6 +9,7 @@ data class AuthState(
     val isLoading: Boolean = false,
     val user: User? = null,
     val errorMessage: String? = null,
+    val isLoggedOut: Boolean = false
 )
 
 sealed class AuthSideEffect {
@@ -44,34 +44,41 @@ class AuthViewModel : ViewModel(), ContainerHost<AuthState, AuthSideEffect> {
                     state.copy(
                         isLoading = false,
                         user = user,
+                        isLoggedOut = false,
                         errorMessage = null
                     )
                 }
                 postSideEffect(AuthSideEffect.NavigateToHome)
-            } else {
-                val errorBody = response.errorBody()?.string()
-                val errorMessage = try {
-                    val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                    "Error de login: ${errorResponse.error}"
-                } catch (e: Exception) {
-                    when (response.code()) {
-                        400 -> "Error de login: Datos inválidos. Verifica email y contraseña."
-                        401 -> "Error de login: Credenciales incorrectas."
-                        403 -> "Error de login: Acceso denegado. Verifica tu API key."
-                        404 -> "Error de login: Servicio no encontrado."
-                        500 -> "Error del servidor. Intenta más tarde."
-                        else -> "Error de login desconocido. Código: ${response.code()}"
-                    }
-                }
-
-                reduce {
-                    state.copy(
-                        isLoading = false,
-                        errorMessage = errorMessage
-                    )
-                }
-                postSideEffect(AuthSideEffect.ShowError(errorMessage))
+                return@intent
             }
+
+            val errorBody = response.errorBody()?.string() ?: ""
+            val errorMessage = try {
+                val errorResponse: ErrorResponse = Json.decodeFromString(errorBody)
+                "Error de login: ${errorResponse.error}"
+            } catch (e: Exception) {
+                /*Aqui se cacha solo el error al deserealizar*/
+                "Error de al deserealizar: ${e.message}"
+            }
+
+            when (response.code()) {
+                400 -> "Error de login: Datos inválidos. Verifica email y contraseña."
+                401 -> "Error de login: Credenciales incorrectas."
+                403 -> "Error de login: Acceso denegado. Verifica tu API key."
+                404 -> "Error de login: Servicio no encontrado."
+                500 -> "Error del servidor. Intenta más tarde."
+                else -> "Error de login desconocido. Código: ${response.code()}"
+            }
+
+            reduce {
+                state.copy(
+                    isLoading = false,
+                    errorMessage = errorMessage
+                )
+            }
+            //postSideEffect(AuthSideEffect.NavigateToHome)
+            postSideEffect(AuthSideEffect.ShowError(errorMessage))
+
         } catch (e: Exception) {
             val errorMessage = when (e) {
                 is java.net.UnknownHostException -> "Error de conexión: Verifica tu conexión a internet"
@@ -106,34 +113,40 @@ class AuthViewModel : ViewModel(), ContainerHost<AuthState, AuthSideEffect> {
                     state.copy(
                         isLoading = false,
                         user = user,
+                        isLoggedOut = false,
                         errorMessage = null
                     )
                 }
                 postSideEffect(AuthSideEffect.NavigateToHome)
-            } else {
-                val errorBody = response.errorBody()?.string()
-                val errorMessage = try {
-                    val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                    "Error de registro: ${errorResponse.error}"
-                } catch (e: Exception) {
-                    when (response.code()) {
-                        400 -> "Error de registro: Email ya registrado o datos inválidos."
-                        401 -> "Error de registro: Credenciales incorrectas."
-                        403 -> "Error de registro: Acceso denegado. Verifica tu API key."
-                        404 -> "Error de registro: Servicio no encontrado."
-                        500 -> "Error del servidor. Intenta más tarde."
-                        else -> "Error de registro desconocido. Código: ${response.code()}"
-                    }
-                }
-
-                reduce {
-                    state.copy(
-                        isLoading = false,
-                        errorMessage = errorMessage
-                    )
-                }
-                postSideEffect(AuthSideEffect.ShowError(errorMessage))
+                return@intent
             }
+
+            val errorBody = response.errorBody()?.string() ?: ""
+            val errorMessage = try {
+                val errorResponse: ErrorResponse = Json.decodeFromString(errorBody)
+                "Error de registro: ${errorResponse.error}"
+            } catch (e: Exception) {
+                /*Aqui se cacha solo el error al deserealizar*/
+                "Error de al deserealizar: ${e.message}"
+            }
+
+            when (response.code()) {
+                400 -> "Error de registro: Email ya registrado o datos inválidos."
+                401 -> "Error de registro: Credenciales incorrectas."
+                403 -> "Error de registro: Acceso denegado. Verifica tu API key."
+                404 -> "Error de registro: Servicio no encontrado."
+                500 -> "Error del servidor. Intenta más tarde."
+                else -> "Error de registro desconocido. Código: ${response.code()}"
+            }
+
+            reduce {
+                state.copy(
+                    isLoading = false,
+                    errorMessage = errorMessage
+                )
+            }
+            postSideEffect(AuthSideEffect.ShowError(errorMessage))
+
         } catch (e: Exception) {
             val errorMessage = when (e) {
                 is java.net.UnknownHostException -> "Error de conexión: Verifica tu conexión a internet"
@@ -155,6 +168,6 @@ class AuthViewModel : ViewModel(), ContainerHost<AuthState, AuthSideEffect> {
     }
 
     fun logout() = intent {
-        reduce { state.copy(user = null, errorMessage = null) }
+        reduce { state.copy(user = null, isLoggedOut = true, errorMessage = null) }
     }
 }

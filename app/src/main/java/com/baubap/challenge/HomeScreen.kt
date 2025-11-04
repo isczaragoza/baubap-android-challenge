@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import org.orbitmvi.orbit.compose.collectAsState
 
 @Composable
@@ -72,11 +73,14 @@ fun HomeScreen(
         Button(
             onClick = {
                 viewModel.logout()
-                onLogout()
             },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Cerrar Sesión")
+        }
+
+        if (state.isLoggedOut) {
+            onLogout()
         }
     }
 }

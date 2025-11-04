@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,11 +41,11 @@ import org.orbitmvi.orbit.compose.collectSideEffect
 fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     onNavigateToHome: () -> Unit,
+    onLoginError: (String?) -> Unit,
     viewModel: AuthViewModel = viewModel()
 ) {
-    var email = ""
-    var password = ""
-
+    var email by rememberSaveable() { mutableStateOf("eve.holt@reqres.in") }
+    var password by rememberSaveable() { mutableStateOf("pistol") }
     val state by viewModel.collectAsState()
 
     viewModel.collectSideEffect { sideEffect ->
@@ -55,6 +56,7 @@ fun LoginScreen(
 
             is AuthSideEffect.ShowError -> {
                 // Los errores ahora se muestran permanentemente en el estado
+                onLoginError(sideEffect.message)
             }
         }
     }
@@ -128,7 +130,11 @@ fun LoginScreen(
         }
 
         TextButton(
-            onClick = onNavigateToRegister,
+            onClick = {
+                viewModel.clearError()
+                onLoginError(null)
+                onNavigateToRegister()
+            },
             enabled = !state.isLoading
         ) {
             Text("¿No tienes cuenta? Registrate")
@@ -143,6 +149,7 @@ fun LoginScreenPreview() {
         LoginScreen(
             onNavigateToRegister = {},
             onNavigateToHome = {},
+            onLoginError = {}
         )
     }
 }

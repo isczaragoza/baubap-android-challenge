@@ -33,6 +33,7 @@ import org.orbitmvi.orbit.compose.collectSideEffect
 fun RegisterScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToHome: () -> Unit,
+    onClickRegister: (String, String) -> Unit,
     viewModel: AuthViewModel = viewModel()
 ) {
     var email by remember { mutableStateOf("eve.holt@reqres.in") }
@@ -114,7 +115,7 @@ fun RegisterScreen(
         Button(
             onClick = {
                 if (password == confirmPassword) {
-                    viewModel.register(email, password)
+                    onClickRegister(email, password)
                 }
             },
             modifier = Modifier
